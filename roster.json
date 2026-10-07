@@ -1,0 +1,116 @@
+{
+  "updated": "2026-10-07",
+  "note": "Edit this file via GitHub web UI (pencil icon on roster.json page) → scroll down → Commit changes. ~30 seconds later the live site serves the new roster. No code edits needed to add/remove agents, change shifts, or add new shift codes.",
+
+  "shifts": [
+    { "code": "S1", "istStart": "07:00", "istEnd": "16:00", "label": "Shift 1 · 06:30 PM – 03:30 AM PST", "istLabel": "07:00 AM – 04:00 PM IST", "color": "#e8a33d" },
+    { "code": "S2", "istStart": "14:30", "istEnd": "23:30", "label": "Shift 2 · 02:00 AM – 11:00 AM PST", "istLabel": "02:30 PM – 11:30 PM IST", "color": "#4d9de0" },
+    { "code": "S3", "istStart": "22:30", "istEnd": "07:30", "label": "Shift 3 · 10:00 AM – 07:00 PM PST", "istLabel": "10:30 PM – 07:30 AM IST", "color": "#7b6fe0" },
+    { "code": "S4", "istStart": "16:30", "istEnd": "01:30", "label": "Shift 4 · 04:00 AM – 01:00 PM PST", "istLabel": "04:30 PM – 01:30 AM IST", "color": "#3dbd8f" },
+    { "code": "S5", "istStart": "08:30", "istEnd": "17:30", "label": "Spanish Morning", "istLabel": "08:30 AM – 05:30 PM IST", "color": "#ff6b9d" },
+    { "code": "S6", "istStart": "17:30", "istEnd": "02:30", "label": "Spanish Evening", "istLabel": "05:30 PM – 02:30 AM IST", "color": "#ffd93d" },
+    { "code": "S7", "istStart": "23:30", "istEnd": "08:30", "label": "Spanish Night (extended)", "istLabel": "11:30 PM – 08:30 AM IST", "color": "#a78bfa" },
+    { "code": "S8", "istStart": "15:30", "istEnd": "00:30", "label": "Spanish Afternoon", "istLabel": "03:30 PM – 12:30 AM IST", "color": "#f87171" }
+  ],
+
+  "roles": {
+    "Leadership": ["Joyson Fernandez", "Anju Mareeta Lean"],
+    "Team Lead":  ["Surya Suresh", "Vishnu B S", "Ansu Varghese", "Vishnu V", "Jaison Nelson", "Rashmika", "Shiju Salam", "Bijoy Kiran", "Aswini S Rani"]
+  },
+
+  "agents": [
+    { "name": "Jaison Nelson",          "shift": "S1", "weekoff": "FRI-SAT",   "team": "CS English" },
+    { "name": "Rashmika",               "shift": "S1", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Karnan Jayaprakash",     "shift": "S1", "weekoff": "WED-THURS", "team": "CS English" },
+    { "name": "Abin Ferry",             "shift": "S1", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Aswin AV",               "shift": "S1", "weekoff": "WED-THURS", "team": "CS English" },
+    { "name": "Irshad S",               "shift": "S1", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Irfana S Ibrahim",       "shift": "S1", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "John Chacko",            "shift": "S1", "weekoff": "THURS-FRI", "team": "CS English" },
+    { "name": "Hizana Noushad",         "shift": "S1", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Sufaila Abdul Fathah",   "shift": "S1", "weekoff": "MON-TUE",   "team": "CS English" },
+    { "name": "Nimi M Nair",            "shift": "S1", "weekoff": "FRI-SAT",   "team": "CS English" },
+
+    { "name": "Anju Mareeta Lean",      "shift": "S2", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Shiju Salam",            "shift": "S2", "weekoff": "WED-THURS", "team": "CS English" },
+    { "name": "Bijoy Kiran",            "shift": "S2", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Surya Suresh",           "shift": "S2", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Jijo Papachan",          "shift": "S2", "weekoff": "THURS-FRI", "team": "CS English" },
+    { "name": "Abin Eappen",            "shift": "S2", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Dravya SP Naga",         "shift": "S2", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Ajeet A",                "shift": "S2", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Jishnu Praveen",         "shift": "S2", "weekoff": "THURS-FRI", "team": "CS English" },
+    { "name": "Tharun Sunil Kumar",     "shift": "S2", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Swathy Peethambaran",    "shift": "S2", "weekoff": "FRI-SAT",   "team": "CS English" },
+    { "name": "Abhinav S B",            "shift": "S2", "weekoff": "WED-THURS", "team": "CS English" },
+    { "name": "Jonathan Anil",          "shift": "S2", "weekoff": "MON-TUE",   "team": "CS English" },
+    { "name": "Gokul Sarath",           "shift": "S2", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Ajesh Mathew Varghese",  "shift": "S2", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Abhilash Lean",          "shift": "S2", "weekoff": "WED-THURS", "team": "CS English" },
+    { "name": "Reshma Sunil",           "shift": "S2", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Rijisha S Kumar",        "shift": "S2", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Gowri S",                "shift": "S2", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Jithin S",               "shift": "S2", "weekoff": "THURS-FRI", "team": "CS English" },
+    { "name": "Henna Najim",            "shift": "S2", "weekoff": "FRI-SAT",   "team": "CS English" },
+    { "name": "Vidya Vijayan",          "shift": "S2", "weekoff": "SAT-SUN",   "team": "CS English" },
+
+    { "name": "Ansu Varghese",          "shift": "S3", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Vishnu V",               "shift": "S3", "weekoff": "MON-TUE",   "team": "CS English" },
+    { "name": "Vishnu B S",             "shift": "S3", "weekoff": "FRI-SAT",   "team": "CS English" },
+    { "name": "Aswini S Rani",          "shift": "S3", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Rufus H Johny",          "shift": "S3", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Azhar Abdul Kalam",      "shift": "S3", "weekoff": "FRI-SAT",   "team": "CS English" },
+    { "name": "Nikhil Pradeep",         "shift": "S3", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Arya J S",               "shift": "S3", "weekoff": "FRI-SAT",   "team": "CS English" },
+    { "name": "Amal Krishna A",         "shift": "S3", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Abhilash Augustin",      "shift": "S3", "weekoff": "MON-TUE",   "team": "CS English" },
+    { "name": "Abhiraj Erenzath",       "shift": "S3", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Muvithra M",             "shift": "S3", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Devika S",               "shift": "S3", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Pooja Jose",             "shift": "S3", "weekoff": "SUN-MON",   "team": "CS English" },
+    { "name": "Haleema Raheem",         "shift": "S3", "weekoff": "WED-THURS", "team": "CS English" },
+    { "name": "Lalita Lama",            "shift": "S3", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Althaf Z",               "shift": "S3", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Sumith B I",             "shift": "S3", "weekoff": "THURS-FRI", "team": "CS English" },
+    { "name": "Sanjogita Ajith",        "shift": "S3", "weekoff": "WED-THURS", "team": "CS English" },
+    { "name": "Kishor Kumar R S",       "shift": "S3", "weekoff": "THURS-FRI", "team": "CS English" },
+    { "name": "Gladstone Christudasan", "shift": "S3", "weekoff": "TUE-WED",   "team": "CS English" },
+    { "name": "Aravind A S",            "shift": "S3", "weekoff": "THURS-FRI", "team": "CS English" },
+    { "name": "Vaishakh S Panicker",    "shift": "S3", "weekoff": "WED-THURS", "team": "CS English" },
+
+    { "name": "Joyson Fernandez",       "shift": "S4", "weekoff": "SAT-SUN",   "team": "CS English" },
+    { "name": "Vishnu M S",             "shift": "S4", "weekoff": "SAT-SUN",   "team": "CS English" },
+
+    { "name": "Naushad Ahmad",          "shift": "S1", "weekoff": "SAT-SUN",   "team": "CS Spanish" },
+    { "name": "MD Haider Ali",          "shift": "S5", "weekoff": "MON-TUE",   "team": "CS Spanish" },
+    { "name": "Pawan Kumar",            "shift": "S8", "weekoff": "WED-THURS", "team": "CS Spanish" },
+    { "name": "Mohamed Jowhar",         "shift": "S6", "weekoff": "SAT-SUN",   "team": "CS Spanish" },
+    { "name": "Ansar",                  "shift": "S6", "weekoff": "MON-TUE",   "team": "CS Spanish" },
+    { "name": "Javed Khan",             "shift": "S3", "weekoff": "WED-THURS", "team": "CS Spanish" },
+    { "name": "Siddarth Raj",           "shift": "S3", "weekoff": "SAT-SUN",   "team": "CS Spanish" },
+    { "name": "Sattar Alam",            "shift": "S3", "weekoff": "MON-TUE",   "team": "CS Spanish" },
+    { "name": "Uppara Likith",          "shift": "S3", "weekoff": "TUE-WED",   "team": "CS Spanish" }
+  ],
+
+  "aliases": {
+    "md ali":        "MD Haider Ali",
+    "haider ali":    "MD Haider Ali",
+    "ansar alli":    "Ansar",
+    "uppara likhith": "Uppara Likith"
+  },
+
+  "exceptions": [
+    { "person": "Jithin S",      "from": "2026-07-01", "to": "2026-07-31", "type": "shift", "shift": "S3", "note": "July only – then back to S2" },
+
+    { "person": "Aswini S Rani", "from": "2026-10-07", "to": "2027-12-31", "type": "shift", "shift": "S1", "note": "Temporary — shorten 'to' when she rotates back to S3" },
+    { "person": "Rashmika",      "from": "2026-10-07", "to": "2027-12-31", "type": "shift", "shift": "S3", "note": "Temporary — shorten 'to' when she rotates back to S1" },
+
+    { "person": "Sattar Alam",   "from": "2026-10-07", "to": "2026-10-20", "type": "shift", "shift": "S7", "note": "Spanish night rotation block 1 (extended)" },
+    { "person": "Uppara Likith", "from": "2026-10-21", "to": "2026-11-03", "type": "shift", "shift": "S7", "note": "Spanish night rotation block 2 (extended)" },
+    { "person": "Javed Khan",    "from": "2026-11-04", "to": "2026-11-17", "type": "shift", "shift": "S7", "note": "Spanish night rotation block 3 (extended)" },
+    { "person": "Siddarth Raj",  "from": "2026-11-18", "to": "2026-12-01", "type": "shift", "shift": "S7", "note": "Spanish night rotation block 4 (extended)" },
+    { "person": "Sattar Alam",   "from": "2026-12-02", "to": "2026-12-15", "type": "shift", "shift": "S7", "note": "Spanish night rotation block 5 (extended)" },
+    { "person": "Uppara Likith", "from": "2026-12-16", "to": "2026-12-29", "type": "shift", "shift": "S7", "note": "Spanish night rotation block 6 (extended)" },
+    { "person": "Javed Khan",    "from": "2026-12-30", "to": "2027-01-05", "type": "shift", "shift": "S7", "note": "Spanish night rotation block 7 (extended)" }
+  ]
+}

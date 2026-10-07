@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAY CS · Attendance Compliance</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" onerror="console.warn('SheetJS 0.20.3 unavailable — using 0.18.5 fallback')"></script>
+<style>
+:root{
+  --ink:#10141f; --panel:#171c2b; --panel2:#1e2436; --line:#2a3149; --line2:#39415e;
+  --txt:#e8ebf4; --dim:#8b93ad; --faint:#5b6380;
+  --red:#ff5d6c; --redbg:#3a1620; --amber:#ffb454; --amberbg:#3a2a12; --green:#3ddc97; --greenbg:#123226;
+  --blue:#5aa7ff; --bluebg:#14263f; --violet:#9d8cff; --grey:#77809c; --greybg:#232a3e;
+  --s1:#e8a33d; --s2:#4d9de0; --s3:#9d8cff; --s4:#3ddc97;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ink);color:var(--txt);font:14px/1.45 'Segoe UI',system-ui,-apple-system,sans-serif;padding-bottom:60px}
+.num{font-variant-numeric:tabular-nums;font-family:'Cascadia Code','SF Mono',Consolas,monospace}
+header{padding:20px 28px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:14px;align-items:baseline}
+header h1{font-size:19px;font-weight:600;letter-spacing:.4px}
+header h1 b{color:var(--amber);font-weight:700}
+header .sub{color:var(--dim);font-size:12.5px}
+header .right{margin-left:auto;display:flex;gap:8px}
+.wrap{padding:18px 28px;max-width:1480px;margin:0 auto}
+/* shift legend rail */
+.rail{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.railitem{background:var(--panel);border:1px solid var(--line);border-left:4px solid;border-radius:8px;padding:8px 14px;font-size:12px;color:var(--dim)}
+.railitem b{display:block;color:var(--txt);font-size:12.5px;margin-bottom:1px}
+/* upload */
+#drop{border:2px dashed var(--line2);border-radius:12px;padding:44px 20px;text-align:center;color:var(--dim);cursor:pointer;transition:.15s;background:var(--panel)}
+#drop:hover,#drop.over{border-color:var(--amber);color:var(--txt);background:var(--panel2)}
+#drop .big{font-size:16px;color:var(--txt);margin-bottom:6px}
+#drop input{display:none}
+#loadedbar{display:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12.5px;color:var(--dim);align-items:center;gap:16px;flex-wrap:wrap}
+#loadedbar b{color:var(--txt)}
+/* controls */
+.controls{display:none;flex-wrap:wrap;gap:10px;margin:14px 0;align-items:center}
+.pillrow{display:flex;gap:6px;flex-wrap:wrap}
+.pill{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:20px;padding:6px 14px;font-size:12.5px;cursor:pointer;transition:.12s}
+.pill:hover{border-color:var(--line2);color:var(--txt)}
+.pill.on{background:var(--amber);border-color:var(--amber);color:#1a1305;font-weight:600}
+.pill.s1.on{background:var(--s1);border-color:var(--s1)}
+.pill.s2.on{background:var(--s2);border-color:var(--s2);color:#08121f}
+.pill.s3.on{background:var(--s3);border-color:var(--s3);color:#120e2a}
+.pill.s4.on{background:var(--s4);border-color:var(--s4);color:#06231a}
+.controls input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:7px 12px;font-size:13px;width:190px}
+.controls input[type=text]:focus{outline:none;border-color:var(--amber)}
+.btn{background:var(--panel2);border:1px solid var(--line2);color:var(--txt);border-radius:8px;padding:7px 14px;font-size:12.5px;cursor:pointer;transition:.12s}
+.btn:hover{border-color:var(--amber);color:var(--amber)}
+.btn.primary{background:var(--amber);border-color:var(--amber);color:#1a1305;font-weight:600}
+label.chk{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--dim);cursor:pointer;user-select:none}
+/* KPI */
+.kpis{display:none;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 16px;cursor:pointer;transition:.12s;user-select:none}
+.kpi:hover{border-color:var(--line2);transform:translateY(-1px)}
+.kpi.active{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+.kpi .hint2{font-size:10px;color:var(--faint);margin-top:3px;display:none}
+.kpi.active .hint2{display:block}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:.5px}
+.kpi .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.kpi.red .v{color:var(--red)} .kpi.amber .v{color:var(--amber)} .kpi.green .v{color:var(--green)} .kpi.blue .v{color:var(--blue)}
+/* table */
+.tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:auto;margin-bottom:20px}
+.grouph{margin:4px 0 8px;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1.4px;display:flex;align-items:baseline;gap:10px}
+.grouph .n{color:var(--faint);font-size:11px;text-transform:none;letter-spacing:0}
+table{width:100%;border-collapse:collapse;min-width:1080px}
+th{position:sticky;top:0;background:var(--panel2);color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:1.1px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);z-index:2;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--txt)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.viol{background:rgba(255,93,108,.045)}
+tr:hover td{background:rgba(255,255,255,.025)}
+td.bad{color:var(--red);font-weight:700}
+td.warn{color:var(--amber);font-weight:700}
+td.ok{color:var(--green)}
+td.mut{color:var(--faint)}
+.shifttag{display:inline-block;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.shifttag.S1{background:rgba(232,163,61,.16);color:var(--s1)} .shifttag.S2{background:rgba(77,157,224,.16);color:var(--s2)}
+.shifttag.S3{background:rgba(157,140,255,.16);color:var(--s3)} .shifttag.S4{background:rgba(61,220,151,.16);color:var(--s4)}
+.shifttag.CUSTOM{background:rgba(255,255,255,.1);color:var(--txt)}
+.chip{display:inline-block;border-radius:4px;padding:2px 7px;font-size:10.5px;font-weight:700;letter-spacing:.6px;margin:1px 3px 1px 0}
+.chip.red{background:var(--redbg);color:var(--red);border:1px solid rgba(255,93,108,.35)}
+.chip.amber{background:var(--amberbg);color:var(--amber);border:1px solid rgba(255,180,84,.35)}
+.chip.green{background:var(--greenbg);color:var(--green);border:1px solid rgba(61,220,151,.35)}
+.chip.blue{background:var(--bluebg);color:var(--blue);border:1px solid rgba(90,167,255,.35)}
+.chip.grey{background:var(--greybg);color:var(--grey);border:1px solid var(--line2)}
+.emp{font-weight:600}
+.note{color:var(--faint);font-size:11px;font-style:italic;white-space:normal;max-width:220px}
+.section-h{display:none;margin:22px 0 10px;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1.4px}
+#nolist,#unmatched{display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-size:12.5px;color:var(--dim);margin-bottom:14px}
+#nolist b,#unmatched b{color:var(--txt)}
+#unmatched select{background:var(--panel2);border:1px solid var(--line2);color:var(--txt);border-radius:6px;padding:4px 8px;font-size:12px;margin-left:8px}
+/* modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(5,8,15,.72);z-index:50;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.modal.open{display:flex}
+.mbox{background:var(--panel);border:1px solid var(--line2);border-radius:14px;max-width:860px;width:100%;padding:22px 26px}
+.mbox h2{font-size:16px;margin-bottom:4px}
+.mbox .hint{color:var(--dim);font-size:12px;margin-bottom:16px}
+.exform{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px}
+.exform label{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:4px}
+.exform select,.exform input{width:100%;background:var(--ink);border:1px solid var(--line2);color:var(--txt);border-radius:7px;padding:7px 9px;font-size:13px}
+.exform .full{grid-column:1/-1}
+.exlist{max-height:320px;overflow:auto}
+.exrow{display:flex;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid var(--line);font-size:12.5px}
+.exrow .who{font-weight:600;min-width:150px}
+.exrow .del{margin-left:auto;background:none;border:1px solid var(--line2);color:var(--red);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11.5px}
+.exrow .del:hover{background:var(--redbg)}
+.mclose{float:right;background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer}
+.mclose:hover{color:var(--txt)}
+.viewtabs{display:none;gap:8px;margin:2px 0 14px}
+.vtab{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:9px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:600;transition:.12s}
+.vtab:hover{color:var(--txt);border-color:var(--line2)}
+.vtab.on{background:var(--panel2);border-color:var(--amber);color:var(--amber)}
+#repeatWrap{display:none}
+.repchip{display:inline-block;background:var(--panel2);border:1px solid var(--line2);border-radius:5px;padding:2px 8px;font-size:11px;margin:2px 4px 2px 0;color:var(--dim);white-space:nowrap}
+.repchip b{color:var(--red)}
+.repchip.b b{color:var(--amber)}
+td.wrapcell{white-space:normal;min-width:220px}
+tr.repeat td{background:rgba(255,93,108,.06)}
+.repcount{font-size:16px;font-weight:700}
+.repcount.zero{color:var(--faint);font-weight:400;font-size:13px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--amber);color:var(--txt);border-radius:10px;padding:10px 22px;font-size:13px;display:none;z-index:99}
+.timecell{display:flex;flex-direction:column;line-height:1.2}
+.timecell .d{font-size:10px;color:var(--faint)}
+.rolechip{display:inline-block;border-radius:4px;padding:1px 6px;font-size:9.5px;font-weight:700;letter-spacing:.6px;margin-left:7px;vertical-align:middle}
+.rolechip.Leadership{background:rgba(255,180,84,.16);color:var(--amber);border:1px solid rgba(255,180,84,.4)}
+.rolechip.TL{background:rgba(90,167,255,.16);color:var(--blue);border:1px solid rgba(90,167,255,.4)}
+.rolechip.Agent{background:var(--greybg);color:var(--grey);border:1px solid var(--line2)}
+#roleCards{display:none;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px}
+.rolecard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;cursor:pointer;transition:.12s}
+.rolecard:hover{border-color:var(--line2)}
+.rolecard.active{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+.rolecard h3{font-size:12px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.rolecard h3 .cnt{color:var(--faint);font-weight:400;font-size:11px;text-transform:none;letter-spacing:0}
+.rolestats{display:flex;gap:14px;flex-wrap:wrap}
+.rstat{font-size:11px;color:var(--dim)}
+.rstat b{display:block;font-size:17px;letter-spacing:.3px}
+.rstat b.red{color:var(--red)} .rstat b.amber{color:var(--amber)} .rstat b.green{color:var(--green)} .rstat b.blue{color:var(--blue)}
+@media(max-width:760px){ .wrap{padding:14px 12px} header{padding:14px 14px 10px} }
+</style>
+</head>
+<body>
+<header>
+  <h1><b>WAY</b> · Attendance Compliance</h1>
+  <span class="sub">greytHR swipe audit · rules: on-time login · ≤ 60 min break · ≥ 8 hrs in office</span>
+  <div class="right">
+    <button class="btn" id="btnEx">⚙ Exceptions</button>
+    <button class="btn" id="btnCopy" style="display:none">⧉ Copy report</button>
+    <button class="btn" id="btnReset" style="display:none">↺ New file</button>
+  </div>
+</header>
+<div class="wrap">
+  <div class="rail">
+    <div class="railitem" style="border-color:var(--s1)"><b>Shift 1 · 06:30 PM – 03:30 AM PST</b>07:00 AM – 04:00 PM IST door</div>
+    <div class="railitem" style="border-color:var(--s2)"><b>Shift 2 · 02:00 AM – 11:00 AM PST</b>02:30 PM – 11:30 PM IST door</div>
+    <div class="railitem" style="border-color:var(--s3)"><b>Shift 3 · 10:00 AM – 07:00 PM PST</b>10:30 PM – 07:30 AM IST door</div>
+    <div class="railitem" style="border-color:var(--s4)"><b>Shift 4 · 04:00 AM – 01:00 PM PST</b>04:30 PM – 01:30 AM IST door</div>
+  </div>
+  <div id="drop">
+    <div class="big">Drop the greytHR <b>EmployeeSwipeDetails.xlsx</b> here</div>
+    <div>or click to browse · multiple files merge automatically · nothing leaves your browser</div>
+    <input type="file" id="file" accept=".xlsx,.xls" multiple>
+  </div>
+  <div id="loadedbar"></div>
+  <div class="controls" id="controls">
+    <div class="pillrow" id="datePills"></div>
+    <div class="pillrow" id="shiftPills"></div>
+    <div class="pillrow" id="teamPills"></div>
+    <label class="chk"><input type="checkbox" id="violOnly"> Violations only</label>
+    <label class="chk"><input type="checkbox" id="showProg"> Show in-progress shifts</label>
+    <div class="pillrow" title="Roster = judge against each person's assigned shift. Auto = best-fit window from swipes (any month, any roster)">
+      <span class="pill on" id="modeRoster">Roster mode</span><span class="pill" id="modeAuto">Auto-detect (any period)</span>
+    </div>
+    <input type="text" id="search" placeholder="Search employee…">
+  </div>
+  <div class="viewtabs" id="viewTabs">
+    <span class="vtab on" data-v="daily">📋 Daily report</span>
+    <span class="vtab" data-v="repeat">🔁 Repeat offenders</span>
+  </div>
+  <div id="roleCards"></div>
+  <div class="grouph" id="kpiScope" style="display:none"></div>
+  <div class="kpis" id="kpis"></div>
+  <div id="unmatched"></div>
+  <div id="tables"></div>
+  <div id="repeatWrap"></div>
+  <div class="section-h" id="noswipeH">Scheduled but no swipes (leave / WFH / absent — verify)</div>
+  <div id="nolist"></div>
+</div>
+<div class="modal" id="exModal"><div class="mbox">
+  <button class="mclose" onclick="document.getElementById('exModal').classList.remove('open')">×</button>
+  <h2>Exception shifts & approvals</h2>
+  <div class="hint">Rotation-boundary shift changes, approved lates/breaks, leave. Saved in this browser; use Export before switching machines. Built-in: Jithin S → Shift 3 for July 2026.</div>
+  <div class="exform">
+    <div><label>Employee</label><select id="exPerson"></select></div>
+    <div><label>From</label><input type="date" id="exFrom"></div>
+    <div><label>To</label><input type="date" id="exTo"></div>
+    <div><label>Type</label><select id="exType">
+      <option value="shift">Different shift</option><option value="custom">Custom timing</option>
+      <option value="ot">OT shift (judge vs OT start)</option>
+      <option value="late">Approved late</option><option value="early">Approved early out</option>
+      <option value="break">Approved extended break</option><option value="hours">Approved short hours</option>
+      <option value="leave">On leave / no attendance</option></select></div>
+    <div id="exShiftWrap"><label>Shift</label><select id="exShift">
+      <option value="S1">S1 · 6:30PM PST (7AM IST)</option><option value="S2">S2 · 2AM PST (2:30PM IST)</option>
+      <option value="S3">S3 · 10AM PST (10:30PM IST)</option><option value="S4">S4 · 4AM PST (4:30PM IST)</option></select></div>
+    <div id="exStartWrap" style="display:none"><label>Start (IST)</label><input type="time" id="exStart" value="07:00"></div>
+    <div id="exEndWrap" style="display:none"><label>End (IST)</label><input type="time" id="exEnd" value="16:00"></div>
+    <div class="full"><label>Note</label><input type="text" id="exNote" placeholder="e.g. approved by Joyson — rotation boundary"></div>
+    <div class="full" style="display:flex;gap:8px">
+      <button class="btn primary" id="exAdd">＋ Add exception</button>
+      <button class="btn" id="exExport">Export JSON</button>
+      <button class="btn" id="exImport">Import JSON</button>
+      <input type="file" id="exImportFile" accept=".json" style="display:none">
+    </div>
+  </div>
+  <div class="exlist" id="exList"></div>
+</div></div>
+<div id="toast"></div>
+<script>
+// ===== WAY Attendance Engine (core) =====
+// SHIFTS, ROSTER, ROLE_OF, BUILTIN_OVERRIDES, ALIASES below are SEED values
+// used only if roster.json cannot be fetched (e.g. opened as local file).
+// On page load, loadRoster() overwrites all of them from ./roster.json.
+let SHIFTS = {
+  S1: { code:'S1', label:'06:30 PM – 03:30 AM PST', ist:'07:00 AM – 04:00 PM IST', startMin: 7*60,        endMin: 16*60,        color:'#e8a33d' },
+  S2: { code:'S2', label:'02:00 AM – 11:00 AM PST', ist:'02:30 PM – 11:30 PM IST', startMin: 14*60+30,    endMin: 23*60+30,     color:'#4d9de0' },
+  S3: { code:'S3', label:'10:00 AM – 07:00 PM PST', ist:'10:30 PM – 07:30 AM IST', startMin: 22*60+30,    endMin: 31*60+30,     color:'#7b6fe0' },
+  S4: { code:'S4', label:'04:00 AM – 01:00 PM PST', ist:'04:30 PM – 01:30 AM IST', startMin: 16*60+30,    endMin: 25*60+30,     color:'#3dbd8f' },
+};
+const RULES = { maxBreakMin: 60, minOfficeHrs: 8, lateGraceMin: 1, otInfoMin: 45 };
+
+// Roster: Jul–Sep 2026 rotation. weekoff uses PST weekdays (0=Sun..6=Sat)
+const WD = { SUN:0, MON:1, TUE:2, TUES:2, WED:3, THU:4, THUR:4, THURS:4, FRI:5, SAT:6 };
+function offs(s){ return s.split('-').map(x=>WD[x.trim().toUpperCase()]); }
+let TEAM_OF = {};  // name -> "CS English" / "CS Spanish", populated from roster.json
+let ROSTER = [
+  ['Surya Suresh','S1','SUN-MON'],['Vishnu B S','S1','FRI-SAT'],['Rufus H Johny','S1','TUE-WED'],
+  ['Azhar Abdul Kalam','S1','WED-THURS'],['Nikhil Pradeep','S1','SUN-MON'],['Arya J S','S1','FRI-SAT'],
+  ['Amal Krishna A','S1','TUE-WED'],['Akshaya G S','S1','SAT-SUN'],['Nimi M Nair','S1','THURS-FRI'],
+  ['Ajesh Mathew Varghese','S1','THURS-FRI'],['Blessy Hillary','S1','SUN-MON'],['Abhilash Augustin','S1','MON-TUE'],
+  ['Uppara Likhith','S1','SAT-SUN'],['Sattar Alam','S1','THURS-FRI'],
+  ['Joyson Fernandez','S4','SAT-SUN'],['Vishnu M S','S4','SAT-SUN'],
+  ['Anju Mareeta Lean','S2','SAT-SUN'],['Ansu Varghese','S2','SAT-SUN'],['Vishnu V','S2','MON-TUE'],
+  ['Abhiraj Erenzath','S2','SAT-SUN'],['Abhishek Kumar S','S2','SUN-MON'],['Muvithra M','S2','SAT-SUN'],
+  ['Althaf Z','S2','WED-THURS'],['Devika S','S2','THURS-FRI'],['Tharun Sunil Kumar','S2','SUN-MON'],
+  ['Sumith B I','S2','MON-TUE'],['Karnan Jayaprakash','S2','TUE-WED'],['Swathy Peethambaran','S2','THURS-FRI'],
+  ['Aswin AV','S2','TUE-WED'],['Irshad S','S2','FRI-SAT'],['Haleema Raheem','S2','TUE-WED'],
+  ['Abhija Zakkir','S2','SAT-SUN'],['Jithin S','S2','FRI-SAT'],['Henna Najim','S2','FRI-SAT'],
+  ['Vidya Vijayan','S2','SAT-SUN'],['Reshma Sunil','S2','WED-THURS'],['Rijisha S Kumar','S2','SUN-MON'],
+  ['Gowri S','S2','MON-TUE'],['Sreela R','S2','SAT-SUN'],['MD Ali','S2','MON-TUE'],
+  ['Javed Khan','S2','WED-THURS'],['Siddarth Raj','S2','SAT-SUN'],
+  ['Jaison Nelson','S3','THURS-FRI'],['Rashmika','S3','SAT-SUN'],['Shiju Salam','S3','TUE-WED'],
+  ['Bijoy Kiran','S3','SUN-MON'],['Greeshma R S','S3','SUN-MON'],['Subin M S','S3','FRI-SAT'],
+  ['Gokul Sarath','S3','SAT-SUN'],['Jijo Papachan','S3','SUN-MON'],['Abin Eappen','S3','SUN-MON'],
+  ['Abhilash Lean','S3','SAT-SUN'],['Dravya SP Naga','S3','SAT-SUN'],['Irfana S Ibrahim','S3','THURS-FRI'],
+  ['John Chacko','S3','SAT-SUN'],['Lalita Lama','S3','SAT-SUN'],['Ananthu J R','S3','WED-THURS'],
+  ['Sufaila Abdul Fathah','S3','THURS-FRI'],['Ajeet A','S3','TUE-WED'],['Jishnu Praveen','S3','MON-TUE'],
+  ['Bibin Selvan','S3','TUE-WED'],['Hizana Noushad','S3','TUE-WED'],['Pooja Jose','S3','THURS-FRI'],
+  ['Abin Ferry','S3','TUE-WED'],['Abhinav S B','S3','THURS-FRI'],['Jonathan Anil','S3','MON-TUE'],
+  ['Ajesh Varghese','S3','MON-TUE'],['Shinu Varghese','S3','THURS-FRI'],['Pawan Kumar','S3','WED-THURS'],
+  ['Ansar Alli','S3','FRI-SAT'],['Mohamed Jowhar','S3','THURS-FRI'],['Naushad Ahmad','S3','MON-TUE'],
+].map(([name,shift,wo])=>({name, shift, weekoff:offs(wo)}));
+
+// Roles: Leadership (Mgr/AM), Team Leads, everyone else = Agents
+let ROLE_GROUPS = {
+  'Leadership': ['Joyson Fernandez','Anju Mareeta Lean'],
+  'Team Lead' : ['Surya Suresh','Vishnu B S','Ansu Varghese','Vishnu V','Jaison Nelson','Rashmika','Shiju Salam','Bijoy Kiran'],
+};
+let ROLE_OF = {};
+ROSTER.forEach(r=>ROLE_OF[r.name]='Agent');
+Object.entries(ROLE_GROUPS).forEach(([role,names])=>names.forEach(n=>ROLE_OF[n]=role));
+const ROLE_ORDER=['Leadership','Team Lead','Agent'];
+
+// Built-in roster-level exception: Jithin S on S3 for July 2026, then back to S2
+let BUILTIN_OVERRIDES = [
+  { person:'Jithin S', from:'2026-07-01', to:'2026-07-31', type:'shift', shift:'S3', note:'July only – then back to 02:00 AM PST' },
+];
+
+// Swipe-name → roster-name aliases (greytHR name mismatches). Augmented at runtime from roster.json.
+let ALIASES = {
+  'bisumith':'Sumith B I','mohammadhaiderali':'MD Haider Ali','siddharthraj':'Siddarth Raj',
+  'rashmikasanthosh':'Rashmika','hennanajims':'Henna Najim','aswinanilkumarvidhudevi':'Aswin AV',
+  'bijoykiran':'Bijoy Kiran','anjumareetalean':'Anju Mareeta Lean',
+  'irshad':'Irshad S','mdsattaralam':'Sattar Alam','lalithalama':'Lalita Lama',
+  'mohamedalijowhark':'Mohamed Jowhar','jijopappachan':'Jijo Papachan',
+};
+function norm(s){ return String(s||'').toLowerCase().replace(/[^a-z]/g,''); }
+let ROSTER_BY_NORM = {}; ROSTER.forEach(r=>ROSTER_BY_NORM[norm(r.name)]=r.name);
+function mapName(swipeName, userAliases){
+  const n = norm(swipeName);
+  if (ROSTER_BY_NORM[n]) return ROSTER_BY_NORM[n];
+  if (userAliases && userAliases[n]) return userAliases[n];
+  if (ALIASES[n]) return ALIASES[n];
+  return null;
+}
+
+// ---- date helpers (all IST wall-clock, treated as plain Date) ----
+function dstr(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function addMin(d,m){ return new Date(d.getTime()+m*60000); }
+function atMidnight(dateStr){ const [y,m,dd]=dateStr.split('-').map(Number); return new Date(y,m-1,dd,0,0,0); }
+function shiftWindow(code, dateStr){
+  const s=SHIFTS[code], mid=atMidnight(dateStr);
+  return { start:addMin(mid,s.startMin), end:addMin(mid,s.endMin) };
+}
+// PST weekday of shift start = IST start − 12h30m (PDT). Weekoff is judged in PST days.
+function pstWeekday(startIST){ return addMin(startIST,-750).getDay(); }
+
+// Effective assignment for a person on a shift date (built-in + user exceptions applied)
+function effectiveShift(person, dateStr, userExceptions){
+  const base = ROSTER.find(r=>r.name===person);
+  let out = { shiftCode: base?base.shift:null, custom:null, cleared:{}, notes:[], onLeave:false };
+  const all = BUILTIN_OVERRIDES.concat(userExceptions||[]);
+  for (const ex of all){
+    if (ex.person!==person) continue;
+    if (dateStr < ex.from || dateStr > (ex.to||ex.from)) continue;
+    if (ex.type==='shift'){ out.shiftCode=ex.shift; out.notes.push(ex.note||'shift exception'); }
+    if (ex.type==='custom'){ out.custom={startMin:ex.startMin,endMin:ex.endMin}; out.notes.push(ex.note||'custom timing'); }
+    if (ex.type==='ot'){ out.ot={startMin:ex.startMin,endMin:ex.endMin}; out.notes.push(ex.note||'OT shift'); }
+    if (ex.type==='late')  { out.cleared.late=true;  out.notes.push(ex.note||'approved late'); }
+    if (ex.type==='early') { out.cleared.early=true; out.notes.push(ex.note||'approved early out'); }
+    if (ex.type==='break') { out.cleared.break=true; out.notes.push(ex.note||'approved extended break'); }
+    if (ex.type==='hours') { out.cleared.hours=true; out.notes.push(ex.note||'approved short hours'); }
+    if (ex.type==='leave') { out.onLeave=true; out.notes.push(ex.note||'leave / no attendance expected'); }
+  }
+  return out;
+}
+function windowFor(person, dateStr, userExceptions){
+  const eff = effectiveShift(person, dateStr, userExceptions);
+  if (!eff.shiftCode && !eff.custom) return null;
+  let w;
+  if (eff.ot){
+    const mid=atMidnight(dateStr);
+    const endMin = eff.ot.endMin!=null ? eff.ot.endMin : eff.ot.startMin+9*60; // open-ended OT: window for matching only
+    w={start:addMin(mid,eff.ot.startMin), end:addMin(mid,endMin)};
+  }
+  else if (eff.custom){ const mid=atMidnight(dateStr); w={start:addMin(mid,eff.custom.startMin), end:addMin(mid,eff.custom.endMin)}; }
+  else w = shiftWindow(eff.shiftCode, dateStr);
+  return { ...w, eff };
+}
+
+let MATCH_MODE='roster'; // 'roster' = use assignments; 'auto' = best-fit window from swipes alone
+
+// ---- session building ----
+function buildSessions(swipes, userAliases){
+  // swipes: [{name, dt(Date), io}]
+  const byPerson = {}; const unmatched = {};
+  for (const s of swipes){
+    let p = mapName(s.name, userAliases);
+    if (!p){
+      if (MATCH_MODE==='auto'){ p=s.name; }               // keep them — window is auto-detected anyway
+      else { unmatched[s.name]=(unmatched[s.name]||0)+1; continue; }
+    }
+    (byPerson[p]=byPerson[p]||[]).push(s);
+  }
+  const sessions=[];
+  for (const [person, arr] of Object.entries(byPerson)){
+    arr.sort((a,b)=>a.dt-b.dt);
+    let cur=[arr[0]];
+    for (let i=1;i<arr.length;i++){
+      if (arr[i].dt - arr[i-1].dt > 6*3600*1000){ sessions.push({person, swipes:cur}); cur=[]; }
+      cur.push(arr[i]);
+    }
+    sessions.push({person, swipes:cur});
+  }
+  return { sessions, unmatched };
+}
+
+// ---- evaluation ----
+function evaluate(sessions, userExceptions, dataStart, dataEnd){
+  const rows=[];
+  for (const sess of sessions){
+    const sw = sess.swipes, first=sw[0].dt, last=sw[sw.length-1].dt;
+    // candidate shift dates: day of first swipe and the day before
+    const cands=[dstr(addMin(first,-1440)), dstr(first)];
+    let best=null;
+    for (const c of cands){
+      if (MATCH_MODE==='auto'){
+        // best-fit any window: score by how well BOTH ends of the session match the window
+        const eff=effectiveShift(sess.person,c,userExceptions);
+        if (eff.ot){
+          const mid=atMidnight(c), em=eff.ot.endMin!=null?eff.ot.endMin:eff.ot.startMin+9*60;
+          const w={start:addMin(mid,eff.ot.startMin), end:addMin(mid,em), eff};
+          const dist=Math.abs(first-w.start)+Math.abs(last-w.end);
+          if (!best||dist<best.dist) best={dateStr:c,w,dist};
+        } else if (eff.custom){
+          const mid=atMidnight(c), w={start:addMin(mid,eff.custom.startMin), end:addMin(mid,eff.custom.endMin), eff};
+          const dist=Math.abs(first-w.start)+Math.abs(last-w.end);
+          if (!best||dist<best.dist) best={dateStr:c,w,dist};
+        } else {
+          for (const code of Object.keys(SHIFTS)){
+            const ww=shiftWindow(code,c);
+            const e2=Object.assign({},eff,{shiftCode:code});
+            const w={start:ww.start,end:ww.end,eff:e2};
+            const dist=Math.abs(first-w.start)+Math.abs(last-w.end);
+            if (!best||dist<best.dist) best={dateStr:c,w,dist};
+          }
+        }
+      } else {
+        const w=windowFor(sess.person,c,userExceptions);
+        if (!w) continue;
+        const dist=Math.abs(first - w.start);
+        if (!best || dist<best.dist) best={dateStr:c, w, dist};
+      }
+    }
+    if (!best){ rows.push({person:sess.person, dateStr:dstr(first), flags:['NO_ROSTER'], swipes:sw.length, first, last}); continue; }
+    const { dateStr, w } = best;
+    const eff=w.eff;
+    // pair swipes
+    // Break time (Out→In gap) is clipped to the shift window [w.start, w.end]:
+    // a pre-shift arrival that steps back out and swipes in again at shift start
+    // should NOT eat into the 60-min break budget. Same for post-shift gaps.
+    let office=0, brk=0, prevIn=null, prevOut=null, anomalies=0, exits=0;
+    for (const s of sw){
+      if (s.io==='In'){
+        if (prevOut!=null){
+          const gapStart = prevOut > w.start ? prevOut : w.start;
+          const gapEnd   = s.dt   < w.end   ? s.dt   : w.end;
+          if (gapEnd > gapStart) brk += gapEnd - gapStart;
+          prevOut=null;
+        }
+        if (prevIn!=null) anomalies++;
+        prevIn=s.dt;
+      } else {
+        if (prevIn!=null){ office += s.dt-prevIn; prevIn=null; } else anomalies++;
+        prevOut=s.dt; exits++;
+      }
+    }
+    const stillIn = prevIn!=null;
+    const firstIsIn = sw[0].io==='In';
+    const inProgress = dataEnd < addMin(w.end,15) || (stillIn && dataEnd < addMin(w.end,60));
+    const partialStart = w.start < dataStart; // shift began before export window — cannot judge
+    const offSchedule = (first >= w.end) || (last <= w.start && ((!stillIn && (w.start-last) > 30*60000) || (stillIn && (w.start-first) > 3*3600*1000)));
+    const flags=[]; const info=[];
+    // weekoff
+    const base=ROSTER.find(r=>r.name===sess.person);
+    if (MATCH_MODE==='roster' && base && base.weekoff.includes(pstWeekday(w.start))) info.push('WEEKOFF_WORK');
+    if (eff.onLeave) info.push('EXCEPTION_LEAVE');
+    let lateMin=null, earlyMin=null;
+    const breakMin=Math.round(brk/60000);
+    const officeH=office/3600000;
+    if (partialStart){
+      info.push('PARTIAL_DATA');
+    } else if (offSchedule){
+      info.push('OFF_SCHEDULE');
+    } else {
+      const isOT = !!eff.ot;
+      const otOpen = isOT && eff.ot.endMin==null;
+      if (isOT) info.push('OT_SHIFT');
+      // late (for OT: judged against the OT start time)
+      if (firstIsIn){
+        lateMin=Math.floor((first - w.start)/60000);
+        if (lateMin>=RULES.lateGraceMin){ flags.push(eff.cleared.late?'LATE_CLEARED':'LATE'); }
+      } else { flags.push('MISSING_IN'); }
+      // break — Managers & Team Leads are exempt when they've put in 8+ hrs in office
+      const roleHere = ROLE_OF[sess.person]||'Agent';
+      const breakWaived = roleHere!=='Agent' && officeH >= RULES.minOfficeHrs;
+      if (!inProgress && breakMin>RULES.maxBreakMin){
+        if (breakWaived) info.push('BREAK_WAIVED');
+        else flags.push(eff.cleared.break?'BREAK_CLEARED':'BREAK_EXCEED');
+      }
+      // hours + early-out (skip 8h rule for OT; early-out only when OT has a defined end)
+      if (!inProgress && !stillIn && firstIsIn){
+        earlyMin=Math.floor((w.end-last)/60000);
+        if (earlyMin>=1 && !otOpen){ flags.push(eff.cleared.early?'EARLY_CLEARED':'EARLY_OUT'); }
+        if (!isOT && officeH < RULES.minOfficeHrs - 1/3600){ flags.push(eff.cleared.hours?'HOURS_CLEARED':'SHORT_HOURS'); }
+        if (!isOT && (last - w.end)/60000 >= RULES.otInfoMin) info.push('OT');
+      }
+      if (inProgress && !otOpen) info.push('IN_PROGRESS');
+      if (stillIn && !inProgress) flags.push('MISSING_OUT');
+      if (anomalies>0 && firstIsIn && !stillIn) flags.push('MISSING_SWIPE');
+    }
+    rows.push({ person:sess.person, dateStr, shiftCode:eff.custom?'CUSTOM':eff.shiftCode,
+      windowStart:w.start, windowEnd:w.end, first, last, swipes:sw.length, exits,
+      lateMin, earlyMin, breakMin, officeH:Math.round(officeH*100)/100,
+      flags, info, notes:eff.notes, stillIn, inProgress });
+  }
+  return rows;
+}
+
+if (typeof module!=='undefined'){ module.exports={SHIFTS,ROSTER,RULES,mapName,buildSessions,evaluate,dstr,windowFor}; }
+
+// ===================== UI layer =====================
+// safe storage (falls back to memory if localStorage unavailable)
+const mem={};
+const store={
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return mem[k]||null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ mem[k]=v; } }
+};
+const EX_KEY='way_att_exceptions_v1', AL_KEY='way_att_aliases_v1';
+let userExceptions = JSON.parse(store.get(EX_KEY)||'[]');
+let userAliases    = JSON.parse(store.get(AL_KEY)||'{}');
+
+let allSwipes=[], rows=[], dataStart=null, dataEnd=null, loadedFiles=[];
+let fDate='ALL', fShift='ALL', kpiFilter='ALL', fRole='ALL', fTeam='ALL', view='daily', repThreshold=2;
+const KPI_PRED={
+  ALL:   r=>true,
+  ONTIME:r=>judgeable(r)&&r.lateMin!=null&&r.lateMin<1,
+  LATE:  r=>r.flags.includes('LATE'),
+  BREAK: r=>r.flags.includes('BREAK_EXCEED'),
+  SHORT: r=>r.flags.includes('SHORT_HOURS')||r.flags.includes('EARLY_OUT'),
+  MISS:  r=>r.flags.some(f=>f.startsWith('MISSING')),
+  PROG:  r=>r.info.includes('IN_PROGRESS'),
+};
+function judgeable(r){ return !r.info.includes('PARTIAL_DATA')&&!r.info.includes('OFF_SCHEDULE')&&!r.flags.includes('NO_ROSTER'); }
+
+const $=id=>document.getElementById(id);
+const FLAG_META={
+  LATE:['LATE','red'], BREAK_EXCEED:['BREAK > 1 HR','amber'], SHORT_HOURS:['< 8 HRS','red'],
+  EARLY_OUT:['EARLY OUT','red'], MISSING_IN:['MISSING IN','amber'], MISSING_OUT:['MISSING OUT','amber'],
+  MISSING_SWIPE:['MISSING SWIPE','amber'], NO_ROSTER:['NOT ON ROSTER','grey'],
+  LATE_CLEARED:['LATE ✓ APPROVED','green'], BREAK_CLEARED:['BREAK ✓ APPROVED','green'],
+  EARLY_CLEARED:['EARLY ✓ APPROVED','green'], HOURS_CLEARED:['HOURS ✓ APPROVED','green'],
+  IN_PROGRESS:['IN PROGRESS','blue'], PARTIAL_DATA:['PARTIAL DATA','grey'], OFF_SCHEDULE:['OFF SCHEDULE','grey'],
+  WEEKOFF_WORK:['WEEK-OFF WORK','blue'], OT:['STAYED OT','green'], OT_SHIFT:['OT SHIFT','green'], BREAK_WAIVED:['BREAK OK · 8H+ TL/MGMT','green'], EXCEPTION_LEAVE:['ON LEAVE','grey'],
+};
+const REAL_VIOL=['LATE','BREAK_EXCEED','SHORT_HOURS','EARLY_OUT','MISSING_IN','MISSING_OUT','MISSING_SWIPE'];
+
+function pad(n){return String(n).padStart(2,'0')}
+function tfmt(d){ if(!d) return '—'; let h=d.getHours(),m=pad(d.getMinutes()),ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+m+' '+ap; }
+function dshort(d){ return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2600); }
+
+// ---- file parsing ----
+const DATE_RE=/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})[,\s]+(\d{1,2}):(\d{2}):(\d{2})/;
+const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function parseDT(s){
+  const m=DATE_RE.exec(String(s).trim()); if(!m) return null;
+  return new Date(+m[3], MON[m[2].toLowerCase()], +m[1], +m[4], +m[5], +m[6]);
+}
+function handleFiles(files){
+  let pending=files.length;
+  for (const f of files){
+    const rd=new FileReader();
+    rd.onload=e=>{
+      try{
+        let wb=null; const u8=new Uint8Array(e.target.result);
+        const attempts=[
+          ()=>XLSX.read(u8,{type:'array',raw:false,cellDates:false}),
+          ()=>{let s='';for(let i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return XLSX.read(s,{type:'binary',raw:false,cellDates:false});},
+          ()=>XLSX.read(u8,{type:'array',dense:true,raw:false,cellDates:false}),
+        ];
+        let lastErr=null;
+        for(const a of attempts){ try{ wb=a(); break; }catch(err){ lastErr=err; } }
+        if(!wb) throw lastErr||new Error('unreadable workbook');
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const arr=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+        let hi=-1,ci={};
+        for(let i=0;i<Math.min(arr.length,10);i++){
+          const r=arr[i].map(x=>String(x).trim());
+          const a=r.indexOf('Employee Name'), b=r.indexOf('Swipe Date'), c=r.indexOf('In/Out');
+          if(a>=0&&b>=0&&c>=0){ hi=i; ci={name:a,dt:b,io:c}; break; }
+        }
+        if(hi<0){ toast('⚠ '+f.name+': not a greytHR swipe report'); }
+        else{
+          let added=0;
+          for(let i=hi+1;i<arr.length;i++){
+            const r=arr[i]; if(!r||!r[ci.name]) continue;
+            const dt=parseDT(r[ci.dt]); if(!dt) continue;
+            const io=String(r[ci.io]).trim(); if(io!=='In'&&io!=='Out') continue;
+            allSwipes.push({name:String(r[ci.name]).trim(), dt, io, key:r[ci.name]+'|'+r[ci.dt]+'|'+io});
+            added++;
+          }
+          loadedFiles.push(f.name+' ('+added+' swipes)');
+        }
+      }catch(err){ toast('⚠ Could not read '+f.name); console.error(err); }
+      if(--pending===0) afterLoad();
+    };
+    rd.readAsArrayBuffer(f);
+  }
+}
+function afterLoad(){
+  // dedupe
+  const seen={}; allSwipes=allSwipes.filter(s=>{ if(seen[s.key])return false; seen[s.key]=1; return true; });
+  if(!allSwipes.length){ toast('No valid swipe rows found'); return; }
+  recompute();
+}
+function recompute(){
+  dataStart=new Date(Math.min(...allSwipes.map(s=>s.dt)));
+  dataEnd=new Date(Math.max(...allSwipes.map(s=>s.dt)));
+  const {sessions,unmatched}=buildSessions(allSwipes,userAliases);
+  rows=evaluate(sessions,userExceptions,dataStart,dataEnd);
+  renderUnmatched(unmatched);
+  buildFilters();
+  render();
+  $('drop').style.display='none';
+  $('loadedbar').style.display='flex';
+  $('loadedbar').innerHTML='<span>📄 <b>'+loadedFiles.join('</b> · <b>')+'</b></span><span>Window: <b>'
+    +dshort(dataStart)+' '+tfmt(dataStart)+'</b> → <b>'+dshort(dataEnd)+' '+tfmt(dataEnd)
+    +'</b> IST</span><span>'+rows.length+' shift sessions · '+Object.keys(unmatched).length+' unmatched names</span>';
+  $('controls').style.display='flex'; $('kpis').style.display='grid'; $('tables').style.display='block'; $('viewTabs').style.display='flex';
+  $('btnCopy').style.display=''; $('btnReset').style.display='';
+}
+
+// ---- filters ----
+function buildFilters(){
+  const dates=[...new Set(rows.map(r=>r.dateStr))].sort();
+  $('datePills').innerHTML='<span class="pill'+(fDate==='ALL'?' on':'')+'" data-d="ALL">All dates</span>'+
+    dates.map(d=>'<span class="pill'+(fDate===d?' on':'')+'" data-d="'+d+'">'+dshort(atMidnight(d))+'</span>').join('');
+  $('datePills').querySelectorAll('.pill').forEach(p=>p.onclick=()=>{fDate=p.dataset.d;buildFilters();render();});
+  // Shift pills: dynamic from SHIFTS, with inline color so any S-code works
+  const shiftList = [{code:'ALL', color:null, label:'All shifts'}]
+    .concat(Object.keys(SHIFTS).map(c => ({code:c, color:SHIFTS[c].color, label:c})));
+  $('shiftPills').innerHTML = shiftList.map(p => {
+    const on = fShift === p.code;
+    let style = '';
+    if (p.color) {
+      if (on) style = 'background:'+p.color+';border-color:'+p.color+';color:#111;font-weight:600';
+      else    style = 'border-left:3px solid '+p.color;
+    }
+    return '<span class="pill'+(on?' on':'')+'" data-s="'+p.code+'" style="'+style+'">'+p.label+'</span>';
+  }).join('');
+  $('shiftPills').querySelectorAll('.pill').forEach(p=>p.onclick=()=>{fShift=p.dataset.s;buildFilters();render();});
+  // Team pills: dynamic from TEAM_OF; hide if only one team present
+  const teams = [...new Set(Object.values(TEAM_OF))].filter(Boolean).sort();
+  if (teams.length > 1) {
+    const teamList = ['ALL', ...teams];
+    $('teamPills').style.display = '';
+    $('teamPills').innerHTML = teamList.map(t =>
+      '<span class="pill'+(fTeam===t?' on':'')+'" data-t="'+t+'">'+(t==='ALL'?'All teams':t)+'</span>'
+    ).join('');
+    $('teamPills').querySelectorAll('.pill').forEach(p=>p.onclick=()=>{fTeam=p.dataset.t;buildFilters();render();});
+  } else {
+    $('teamPills').style.display = 'none';
+    $('teamPills').innerHTML = '';
+  }
+}
+function visibleRows(applyKpi=true){
+  const q=$('search').value.trim().toLowerCase(), vo=$('violOnly').checked, sp=$('showProg').checked;
+  return rows.filter(r=>{
+    if(!sp&&r.info.includes('IN_PROGRESS')) return false;
+    if(fDate!=='ALL'&&r.dateStr!==fDate) return false;
+    if(fShift!=='ALL'&&r.shiftCode!==fShift) return false;
+    if(fTeam!=='ALL'&&(TEAM_OF[r.person]||'CS English')!==fTeam) return false;
+    if(fRole!=='ALL'&&(ROLE_OF[r.person]||'Agent')!==fRole) return false;
+    if(q&&!r.person.toLowerCase().includes(q)) return false;
+    if(vo&&!r.flags.some(f=>REAL_VIOL.includes(f))) return false;
+    if(applyKpi&&kpiFilter!=='ALL'&&!KPI_PRED[kpiFilter](r)) return false;
+    return true;
+  });
+}
+
+// ---- render ----
+let sortKey='dateStr', sortAsc=true;
+function roleBase(){ // date/shift/team/search only — role & tile filters excluded, for role-card stats
+  const q=$('search').value.trim().toLowerCase(), vo=$('violOnly').checked, sp=$('showProg').checked;
+  return rows.filter(r=>{
+    if(!sp&&r.info.includes('IN_PROGRESS')) return false;
+    if(fDate!=='ALL'&&r.dateStr!==fDate) return false;
+    if(fShift!=='ALL'&&r.shiftCode!==fShift) return false;
+    if(fTeam!=='ALL'&&(TEAM_OF[r.person]||'CS English')!==fTeam) return false;
+    if(q&&!r.person.toLowerCase().includes(q)) return false;
+    if(vo&&!r.flags.some(f=>REAL_VIOL.includes(f))) return false;
+    return true;
+  });
+}
+function renderRoleCards(){
+  const rb=roleBase().filter(judgeable);
+  $('roleCards').style.display='grid';
+  $('roleCards').innerHTML=ROLE_ORDER.map(role=>{
+    const g=rb.filter(r=>(ROLE_OF[r.person]||'Agent')===role);
+    const late=g.filter(KPI_PRED.LATE).length, brk=g.filter(KPI_PRED.BREAK).length,
+          sh=g.filter(KPI_PRED.SHORT).length, ms=g.filter(KPI_PRED.MISS).length;
+    const lj=g.filter(r=>r.lateMin!=null).length;
+    const ot=lj?Math.round((lj-late)/lj*100):100;
+    const cls=role==='Team Lead'?'TL':role;
+    return '<div class="rolecard'+(fRole===role?' active':'')+'" data-role="'+role+'">'+
+      '<h3><span class="rolechip '+cls+'">'+role.toUpperCase()+(role==='Leadership'?' · MGR/AM':role==='Team Lead'?'S':'S')+'</span><span class="cnt">'+g.length+' sessions</span></h3>'+
+      '<div class="rolestats">'+
+      '<span class="rstat"><b class="'+(ot>=95?'green':ot>=85?'amber':'red')+' num">'+ot+'%</b>on-time</span>'+
+      '<span class="rstat"><b class="'+(late?'red':'green')+' num">'+late+'</b>late</span>'+
+      '<span class="rstat"><b class="'+(brk?'amber':'green')+' num">'+brk+'</b>break&gt;1h</span>'+
+      '<span class="rstat"><b class="'+(sh?'red':'green')+' num">'+sh+'</b>short/early</span>'+
+      '<span class="rstat"><b class="'+(ms?'amber':'green')+' num">'+ms+'</b>miss swipe</span>'+
+      '</div></div>';
+  }).join('');
+  $('roleCards').querySelectorAll('.rolecard').forEach(el=>el.onclick=()=>{
+    fRole = fRole===el.dataset.role ? 'ALL' : el.dataset.role;
+    render();
+  });
+}
+function setView(v){
+  view=v;
+  document.querySelectorAll('.vtab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  render();
+}
+function render(){
+  const daily = view==='daily';
+  $('roleCards').style.display = daily && rows.length ? 'grid':'none';
+  $('kpiScope').style.display = daily ? 'flex':'none';
+  $('kpis').style.display = daily && rows.length ? 'grid':'none';
+  $('tables').style.display = daily ? 'block':'none';
+  $('datePills').style.display = daily ? 'flex':'none';
+  $('violOnly').parentElement.style.display = daily ? 'flex':'none';
+  $('repeatWrap').style.display = daily ? 'none':'block';
+  if(!daily){ renderRepeat(); renderNoSwipesGate(); return; }
+  renderRoleCards();
+  const scopeRole = fRole==='ALL' ? 'Agent' : fRole;   // KPI tiles never mix mgmt/TLs with agents
+  const base=visibleRows(false).filter(r=>(ROLE_OF[r.person]||'Agent')===scopeRole);
+  const vis=visibleRows(true);     // + active tile filter — drives the tables
+  // KPIs
+  const judged=base.filter(judgeable);
+  const late=judged.filter(KPI_PRED.LATE).length;
+  const brk=judged.filter(KPI_PRED.BREAK).length;
+  const shorth=judged.filter(KPI_PRED.SHORT).length;
+  const miss=judged.filter(KPI_PRED.MISS).length;
+  const lateJudged=judged.filter(r=>r.lateMin!=null).length;
+  const ontimePct=lateJudged?Math.round((lateJudged-late)/lateJudged*100):100;
+  $('kpis').innerHTML=
+    kpi(judged.length,'Sessions evaluated','','ALL')+
+    kpi(ontimePct+'%','On-time logins', ontimePct>=95?'green':ontimePct>=85?'amber':'red','ONTIME')+
+    kpi(late,'Late logins', late?'red':'green','LATE')+
+    kpi(brk,'Breaks > 1 hr', brk?'amber':'green','BREAK')+
+    kpi(shorth,'Short hrs / early out', shorth?'red':'green','SHORT')+
+    kpi(miss,'Missing swipes', miss?'amber':'green','MISS');
+  $('kpiScope').style.display='flex';
+  $('kpiScope').innerHTML='KPI scope: '+scopeRole.toUpperCase()+(scopeRole==='Agent'?'S':'S')+' <span class="n">— TL & management reported separately below; click a role card to switch scope</span>';
+  $('kpis').querySelectorAll('.kpi').forEach(el=>el.onclick=()=>{
+    const f=el.dataset.f;
+    kpiFilter = (kpiFilter===f||f==='ALL') ? 'ALL' : f;
+    // sensible default sort for the picked tile
+    if(kpiFilter==='LATE'){ sortKey='lateMin'; sortAsc=false; }
+    else if(kpiFilter==='BREAK'){ sortKey='breakMin'; sortAsc=false; }
+    else if(kpiFilter==='SHORT'){ sortKey='officeH'; sortAsc=true; }
+    else if(kpiFilter==='ONTIME'){ sortKey='lateMin'; sortAsc=false; }
+    render();
+  });;
+  // tables — one section per role group, agents first, never mixed
+  const cols=[['dateStr','Date'],['person','Employee'],['shiftCode','Shift'],['first','First In'],['last','Last Out'],
+              ['lateMin','Late'],['breakMin','Break'],['officeH','Hrs In'],['flags','Status'],['notes','Notes']];
+  const thead='<tr>'+cols.map(c=>'<th data-k="'+c[0]+'">'+c[1]+(sortKey===c[0]?(sortAsc?' ▲':' ▼'):'')+'</th>').join('')+'</tr>';
+  const sortFn=(a,b)=>{
+    let x=a[sortKey],y=b[sortKey];
+    if(sortKey==='flags'){x=a.flags.length;y=b.flags.length;}
+    if(x==null)x=-1e15; if(y==null)y=-1e15;
+    if(x instanceof Date)x=+x; if(y instanceof Date)y=+y;
+    const c = x<y?-1:x>y?1:0; return sortAsc?c:-c;
+  };
+  const rowHtml=r=>{
+    const isViol=r.flags.some(f=>REAL_VIOL.includes(f));
+    const jd=!r.info.includes('PARTIAL_DATA')&&!r.info.includes('OFF_SCHEDULE');
+    const lateCell = r.lateMin==null||!jd ? '<td class="mut num">—</td>'
+      : r.lateMin>=1 ? '<td class="bad num">+'+r.lateMin+' min</td>'
+      : '<td class="ok num">'+(r.lateMin<=-1?Math.abs(r.lateMin)+' min early':'on time')+'</td>';
+    const brkCell = !jd? '<td class="mut num">—</td>'
+      : '<td class="num '+(r.breakMin>60?'warn':'')+'">'+r.breakMin+' min'+(r.breakMin>60?' (+'+(r.breakMin-60)+')':'')+'</td>';
+    const hrsCell = !jd? '<td class="mut num">—</td>'
+      : '<td class="num '+(r.flags.includes('SHORT_HOURS')?'bad':(!r.info.includes('IN_PROGRESS')&&r.officeH>=8?'ok':''))+'">'+r.officeH.toFixed(2)+(r.info.includes('IN_PROGRESS')?' …':'')+'</td>';
+    const chips=r.flags.concat(r.info).map(f=>{const m=FLAG_META[f]; return m?'<span class="chip '+m[1]+'">'+m[0]+'</span>':'';}).join('');
+    return '<tr class="'+(isViol?'viol':'')+'">'+
+      '<td class="num">'+dshort(atMidnight(r.dateStr))+'</td>'+
+      '<td class="emp">'+r.person+'</td>'+
+      '<td><span class="shifttag '+(r.shiftCode||'')+'">'+(r.shiftCode||'?')+'</span></td>'+
+      '<td class="num">'+tfmt(r.first)+'</td><td class="num">'+tfmt(r.last)+'</td>'+
+      lateCell+brkCell+hrsCell+
+      '<td>'+(chips||'<span class="chip green">CLEAN ✓</span>')+'</td>'+
+      '<td class="note">'+(r.notes||[]).join('; ')+'</td></tr>';
+  };
+  const SECTION_ORDER=['Agent','Team Lead','Leadership'];
+  const SECTION_LABEL={'Agent':'Agents','Team Lead':'Team Leads','Leadership':'Leadership · Manager & Assistant Manager'};
+  let html='';
+  for(const role of SECTION_ORDER){
+    if(fRole!=='ALL'&&fRole!==role) continue;
+    const g=vis.filter(r=>(ROLE_OF[r.person]||'Agent')===role);
+    if(!g.length && fRole==='ALL') continue;
+    const sorted=[...g].sort(sortFn);
+    html+='<div class="grouph">'+SECTION_LABEL[role]+' <span class="n">'+g.length+' session'+(g.length===1?'':'s')+'</span></div>'+
+      '<div class="tblwrap"><table><thead>'+thead+'</thead><tbody>'+
+      (sorted.map(rowHtml).join('')||'<tr><td colspan="10" style="text-align:center;color:var(--faint);padding:24px">Nothing to show for this group under the current filters</td></tr>')+
+      '</tbody></table></div>';
+  }
+  $('tables').innerHTML = html || '<div style="text-align:center;color:var(--faint);padding:34px;background:var(--panel);border:1px solid var(--line);border-radius:12px">No sessions match the current filters</div>';
+  $('tables').querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(sortKey===k)sortAsc=!sortAsc; else{sortKey=k;sortAsc=true;} render();});
+  renderNoSwipes();
+}
+function renderNoSwipesGate(){ $('noswipeH').style.display='none'; $('nolist').style.display='none'; }
+function roleTag(p){ const role=ROLE_OF[p]||'Agent'; if(role==='Agent') return ''; const cls=role==='Team Lead'?'TL':role; return '<span class="rolechip '+cls+'">'+(role==='Team Lead'?'TL':'MGMT')+'</span>'; }
+function kpi(v,l,c,f){
+  const on = kpiFilter===f && f!=='ALL';
+  return '<div class="kpi '+c+(on?' active':'')+'" data-f="'+f+'"><div class="v num">'+v+'</div><div class="l">'+l+'</div><div class="hint2">FILTERING — CLICK TO CLEAR</div></div>';
+}
+
+// scheduled-but-absent (only for shift windows fully inside the data range)
+function renderNoSwipes(){
+  const have={}; rows.forEach(r=>have[r.person+'|'+r.dateStr]=1);
+  const dates=[...new Set(rows.map(r=>r.dateStr))].sort();
+  const out=[];
+  for(const d of dates){
+    if(fDate!=='ALL'&&d!==fDate) continue;
+    for(const p of ROSTER){
+      const w=windowFor(p.name,d,userExceptions); if(!w) continue;
+      if(fShift!=='ALL'&&(w.eff.custom?'CUSTOM':w.eff.shiftCode)!==fShift) continue;
+      if(w.start<dataStart||w.end>dataEnd) continue;         // window not fully covered
+      if(w.eff.onLeave) continue;
+      if(p.weekoff.includes(pstWeekday(w.start))) continue;  // weekoff
+      if(!have[p.name+'|'+d]) out.push(dshort(atMidnight(d))+' — <b>'+p.name+'</b> ('+(w.eff.custom?'custom':w.eff.shiftCode)+')');
+    }
+  }
+  $('noswipeH').style.display=out.length?'block':'none';
+  $('nolist').style.display=out.length?'block':'none';
+  $('nolist').innerHTML=out.join(' &nbsp;·&nbsp; ');
+}
+function renderUnmatched(unmatched){
+  const names=Object.keys(unmatched);
+  if(!names.length){ $('unmatched').style.display='none'; return; }
+  $('unmatched').style.display='block';
+  $('unmatched').innerHTML='<b>⚠ Names in the file not on the roster</b> — map them so their swipes are evaluated:<br>'+
+    names.map(n=>'<div style="margin-top:8px">'+n+' ('+unmatched[n]+' swipes) → <select data-n="'+n+'"><option value="">— pick roster name —</option>'+
+      ROSTER.map(r=>'<option>'+r.name+'</option>').join('')+'</select></div>').join('');
+  $('unmatched').querySelectorAll('select').forEach(sel=>sel.onchange=()=>{
+    if(!sel.value) return;
+    userAliases[norm(sel.dataset.n)]=sel.value;
+    store.set(AL_KEY,JSON.stringify(userAliases));
+    toast('Mapped "'+sel.dataset.n+'" → '+sel.value); recompute();
+  });
+}
+
+// ---- repeat offenders ----
+function repeatRows(){ // whole loaded range; shift/role/search/in-progress filters respected, date pill ignored
+  const q=$('search').value.trim().toLowerCase(), sp=$('showProg').checked;
+  return rows.filter(r=>{
+    if(!sp&&r.info.includes('IN_PROGRESS')) return false;
+    if(fShift!=='ALL'&&r.shiftCode!==fShift) return false;
+    if(fRole!=='ALL'&&(ROLE_OF[r.person]||'Agent')!==fRole) return false;
+    if(q&&!r.person.toLowerCase().includes(q)) return false;
+    return judgeable(r);
+  });
+}
+function renderRepeat(){
+  const rs=repeatRows();
+  const per={};
+  for(const r of rs){
+    const p=per[r.person]=per[r.person]||{lates:[],breaks:[],shorts:0,sessions:0};
+    p.sessions++;
+    if(r.flags.includes('LATE')) p.lates.push({d:r.dateStr,min:r.lateMin});
+    if(r.flags.includes('BREAK_EXCEED')) p.breaks.push({d:r.dateStr,min:r.breakMin});
+    if(r.flags.includes('SHORT_HOURS')||r.flags.includes('EARLY_OUT')) p.shorts++;
+  }
+  const dates=[...new Set(rs.map(r=>r.dateStr))].sort();
+  const SECTION_ORDER=['Agent','Team Lead','Leadership'];
+  const SECTION_LABEL={'Agent':'Agents','Team Lead':'Team Leads','Leadership':'Leadership · Manager & Assistant Manager'};
+  let html='<div class="grouph" style="margin-bottom:12px">Repeat offenders — full loaded range ('
+    +(dates.length?dshort(atMidnight(dates[0]))+' → '+dshort(atMidnight(dates[dates.length-1])):'')+', '+dates.length+' shift date'+(dates.length===1?'':'s')+')'
+    +' <span class="n">date filter ignored here · repeat = '+repThreshold+'+ occurrences of the same violation</span>'
+    +' &nbsp;<span class="pill'+(repThreshold===2?' on':'')+'" id="th2">2+</span> <span class="pill'+(repThreshold===3?' on':'')+'" id="th3">3+</span>'
+    +' <label class="chk" style="margin-left:10px"><input type="checkbox" id="repAll"'+(window._repAll?' checked':'')+'> show single offences too</label></div>';
+  for(const role of SECTION_ORDER){
+    if(fRole!=='ALL'&&fRole!==role) continue;
+    const names=Object.keys(per).filter(p=>(ROLE_OF[p]||'Agent')===role);
+    const items=names.map(p=>({p,...per[p],score:per[p].lates.length+per[p].breaks.length}))
+      .filter(x=>{
+        const isRepeat = x.lates.length>=repThreshold || x.breaks.length>=repThreshold;
+        return window._repAll ? (x.lates.length>0||x.breaks.length>0) : isRepeat;
+      })
+      .sort((a,b)=> b.score-a.score || (b.lates.length-a.lates.length));
+    if(!items.length && fRole==='ALL') continue;
+    html+='<div class="grouph">'+SECTION_LABEL[role]+' <span class="n">'+items.length+' offender'+(items.length===1?'':'s')+'</span></div>'
+      +'<div class="tblwrap"><table><thead><tr><th>Employee</th><th>Shifts worked</th><th>Late logins</th><th>Late details</th><th>Breaks &gt; 1 hr</th><th>Break details</th><th>Short / early</th></tr></thead><tbody>'
+      +(items.map(x=>{
+        const isRep=x.lates.length>=repThreshold||x.breaks.length>=repThreshold;
+        const ld=x.lates.map(e=>'<span class="repchip">'+dshort(atMidnight(e.d))+' <b>+'+e.min+'m</b></span>').join('');
+        const bd=x.breaks.map(e=>'<span class="repchip b">'+dshort(atMidnight(e.d))+' <b>'+e.min+'m</b></span>').join('');
+        return '<tr class="'+(isRep?'repeat':'')+'">'
+          +'<td class="emp">'+x.p+'</td>'
+          +'<td class="num">'+x.sessions+'</td>'
+          +'<td><span class="repcount '+(x.lates.length?'num':'zero')+'" style="color:'+(x.lates.length>=repThreshold?'var(--red)':x.lates.length?'var(--txt)':'')+'">'+(x.lates.length||'—')+'</span></td>'
+          +'<td class="wrapcell">'+(ld||'<span style="color:var(--faint)">—</span>')+'</td>'
+          +'<td><span class="repcount '+(x.breaks.length?'num':'zero')+'" style="color:'+(x.breaks.length>=repThreshold?'var(--amber)':x.breaks.length?'var(--txt)':'')+'">'+(x.breaks.length||'—')+'</span></td>'
+          +'<td class="wrapcell">'+(bd||'<span style="color:var(--faint)">—</span>')+'</td>'
+          +'<td class="num">'+(x.shorts||'—')+'</td></tr>';
+      }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--faint);padding:24px">No repeat offenders in this group 🎉</td></tr>')
+      +'</tbody></table></div>';
+  }
+  $('repeatWrap').innerHTML=html;
+  const t2=$('th2'),t3=$('th3'),ra=$('repAll');
+  if(t2)t2.onclick=()=>{repThreshold=2;renderRepeat();};
+  if(t3)t3.onclick=()=>{repThreshold=3;renderRepeat();};
+  if(ra)ra.onchange=()=>{window._repAll=ra.checked;renderRepeat();};
+}
+
+// ---- copy report ----
+$('btnCopy').onclick=()=>{
+  if(view==='repeat'){ copyRepeat(); return; }
+  const vis=visibleRows();
+  const L=[]; L.push('WAY CS ATTENDANCE — '+(fDate==='ALL'?'all dates':dshort(atMidnight(fDate)))+(fShift!=='ALL'?' · '+fShift:'')+(fRole!=='ALL'?' · '+fRole+'s':''));
+  const mk=(title,f)=>{ const x=vis.filter(f); if(x.length){ L.push('', title+':');
+    for(const role of ROLE_ORDER){
+      const g=x.filter(r=>(ROLE_OF[r.person]||'Agent')===role);
+      if(!g.length) continue;
+      if(role!=='Agent'||x.length!==g.length) L.push('  ['+role+']');
+      g.forEach(r=>L.push('  - '+r.person+' ('+dshort(atMidnight(r.dateStr))+', '+(r.shiftCode||'?')+'): '+describe(r)));
+    } } };
+  mk('LATE LOGINS', r=>r.flags.includes('LATE'));
+  mk('BREAK EXCEEDED 1 HOUR', r=>r.flags.includes('BREAK_EXCEED'));
+  mk('LESS THAN 8 HOURS / EARLY OUT', r=>r.flags.includes('SHORT_HOURS')||r.flags.includes('EARLY_OUT'));
+  mk('MISSING SWIPES', r=>r.flags.some(f=>f.startsWith('MISSING')));
+  mk('APPROVED EXCEPTIONS APPLIED', r=>r.flags.some(f=>f.endsWith('_CLEARED')));
+  if(L.length===1) L.push('', 'No violations — all clear ✓');
+  navigator.clipboard.writeText(L.join('\n')).then(()=>toast('Report copied to clipboard'));
+};
+function describe(r){
+  const p=[];
+  if(r.lateMin!=null&&r.lateMin>=1)p.push('in '+tfmt(r.first)+' (+'+r.lateMin+' min late)');
+  if(r.breakMin>60)p.push('break '+r.breakMin+' min (+'+(r.breakMin-60)+')');
+  if(r.flags.includes('SHORT_HOURS'))p.push(r.officeH.toFixed(2)+' hrs in office');
+  if(r.flags.includes('EARLY_OUT')&&r.earlyMin>=1)p.push('out '+tfmt(r.last)+' ('+r.earlyMin+' min early)');
+  if(r.flags.some(f=>f.startsWith('MISSING')))p.push('incomplete swipe pairs');
+  if(r.flags.some(f=>f.endsWith('_CLEARED')))p.push('cleared: '+(r.notes||[]).join('; '));
+  return p.join('; ')||'see dashboard';
+}
+
+function copyRepeat(){
+  const rs=repeatRows(); const per={};
+  for(const r of rs){ const p=per[r.person]=per[r.person]||{lates:[],breaks:[]};
+    if(r.flags.includes('LATE'))p.lates.push(dshort(atMidnight(r.dateStr))+' +'+r.lateMin+'m');
+    if(r.flags.includes('BREAK_EXCEED'))p.breaks.push(dshort(atMidnight(r.dateStr))+' '+r.breakMin+'m'); }
+  const L=['WAY CS — REPEAT OFFENDERS ('+repThreshold+'+ occurrences)'];
+  for(const role of ROLE_ORDER){
+    const ns=Object.keys(per).filter(p=>(ROLE_OF[p]||'Agent')===role&&(per[p].lates.length>=repThreshold||per[p].breaks.length>=repThreshold));
+    if(!ns.length) continue;
+    L.push('', '['+role+']');
+    ns.sort((a,b)=>(per[b].lates.length+per[b].breaks.length)-(per[a].lates.length+per[a].breaks.length));
+    for(const n of ns){ const p=per[n];
+      if(p.lates.length>=repThreshold) L.push('  - '+n+': LATE x'+p.lates.length+' ('+p.lates.join(', ')+')');
+      if(p.breaks.length>=repThreshold) L.push('  - '+n+': BREAK>1HR x'+p.breaks.length+' ('+p.breaks.join(', ')+')');
+    }
+  }
+  if(L.length===1) L.push('', 'No repeat offenders ✓');
+  navigator.clipboard.writeText(L.join('\n')).then(()=>toast('Repeat-offender report copied'));
+}
+
+// ---- exceptions modal ----
+function fillExForm(){
+  $('exPerson').innerHTML=ROSTER.map(r=>'<option>'+r.name+'</option>').join('');
+  const today=dstr(new Date()); $('exFrom').value=today; $('exTo').value=today;
+}
+$('exType').onchange=()=>{
+  const t=$('exType').value;
+  $('exShiftWrap').style.display = t==='shift'?'':'none';
+  $('exStartWrap').style.display = $('exEndWrap').style.display = (t==='custom'||t==='ot')?'':'none';
+  $('exEnd').placeholder = t==='ot' ? 'optional' : '';
+};
+$('btnEx').onclick=()=>{ renderExList(); $('exModal').classList.add('open'); };
+$('exModal').onclick=e=>{ if(e.target.id==='exModal') $('exModal').classList.remove('open'); };
+$('exAdd').onclick=()=>{
+  const t=$('exType').value;
+  const ex={person:$('exPerson').value, from:$('exFrom').value, to:$('exTo').value||$('exFrom').value, type:t, note:$('exNote').value.trim()};
+  if(!ex.from){ toast('Pick a from-date'); return; }
+  if(t==='shift') ex.shift=$('exShift').value;
+  if(t==='custom'||t==='ot'){
+    if(!$('exStart').value){ toast('OT/custom needs a start time'); return; }
+    const [sh,sm]=$('exStart').value.split(':').map(Number);
+    ex.startMin=sh*60+sm;
+    if($('exEnd').value){
+      const [eh,em]=$('exEnd').value.split(':').map(Number);
+      ex.endMin=eh*60+em; if(ex.endMin<=ex.startMin) ex.endMin+=1440; // overnight
+    } else if(t==='ot'){ ex.endMin=null; }
+    else { toast('Custom timing needs an end time'); return; }
+  }
+  userExceptions.push(ex); store.set(EX_KEY,JSON.stringify(userExceptions));
+  $('exNote').value=''; renderExList(); if(allSwipes.length) recompute(); toast('Exception added');
+};
+function renderExList(){
+  const tn={shift:'Different shift',custom:'Custom timing',ot:'OT shift',late:'Approved late',early:'Approved early out',break:'Approved break',hours:'Approved short hours',leave:'On leave'};
+  const builtin=BUILTIN_OVERRIDES.map(ex=>'<div class="exrow"><span class="who">'+ex.person+'</span><span>'+ex.from+' → '+ex.to+'</span><span class="chip blue">BUILT-IN</span><span>'+tn[ex.type]+(ex.shift?' → '+ex.shift:'')+'</span><span class="note">'+(ex.note||'')+'</span></div>').join('');
+  const user=userExceptions.map((ex,i)=>'<div class="exrow"><span class="who">'+ex.person+'</span><span>'+ex.from+' → '+(ex.to||ex.from)+'</span><span>'+tn[ex.type]+(ex.shift?' → '+ex.shift:'')+(ex.startMin!=null?' → '+Math.floor(ex.startMin/60)%24+':'+pad(ex.startMin%60)+'–'+(ex.endMin!=null?Math.floor(ex.endMin/60)%24+':'+pad(ex.endMin%60):'open')+' IST':'')+'</span><span class="note">'+(ex.note||'')+'</span><button class="del" data-i="'+i+'">Remove</button></div>').join('');
+  $('exList').innerHTML=builtin+(user||'<div style="color:var(--faint);padding:12px 4px">No exceptions added yet.</div>');
+  $('exList').querySelectorAll('.del').forEach(b=>b.onclick=()=>{
+    userExceptions.splice(+b.dataset.i,1); store.set(EX_KEY,JSON.stringify(userExceptions));
+    renderExList(); if(allSwipes.length) recompute();
+  });
+}
+$('exExport').onclick=()=>{
+  const blob=new Blob([JSON.stringify({exceptions:userExceptions,aliases:userAliases},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='way-attendance-exceptions.json'; a.click();
+};
+$('exImport').onclick=()=>$('exImportFile').click();
+$('exImportFile').onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{ try{
+    const j=JSON.parse(ev.target.result);
+    userExceptions=j.exceptions||[]; userAliases=j.aliases||{};
+    store.set(EX_KEY,JSON.stringify(userExceptions)); store.set(AL_KEY,JSON.stringify(userAliases));
+    renderExList(); if(allSwipes.length) recompute(); toast('Exceptions imported');
+  }catch(err){ toast('Invalid JSON file'); } };
+  rd.readAsText(f);
+};
+
+// ---- dynamic roster loader ----
+// Fetches ./roster.json (same folder as index.html) and replaces the SEED
+// SHIFTS / ROSTER / ROLE_OF / BUILTIN_OVERRIDES / ALIASES / TEAM_OF at runtime.
+// Falls back silently to the seed if the fetch fails (e.g. opened as local file).
+function renderLegendRail(){
+  const rail = document.querySelector('.rail');
+  if (!rail) return;
+  rail.innerHTML = Object.values(SHIFTS).map(s =>
+    '<div class="railitem" style="border-color:'+s.color+'"><b>'+s.code+' · '+(s.label||'')+'</b>'+(s.ist||'')+'</div>'
+  ).join('');
+}
+function buildExShiftOptions(){
+  const sel = $('exShift'); if (!sel) return;
+  sel.innerHTML = Object.values(SHIFTS).map(s =>
+    '<option value="'+s.code+'">'+s.code+' · '+(s.ist||s.label||s.code)+'</option>'
+  ).join('');
+}
+async function loadRoster(){
+  try {
+    const res = await fetch('./roster.json', {cache:'no-store'});
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const r = await res.json();
+    if (Array.isArray(r.shifts) && r.shifts.length) {
+      const next = {};
+      for (const s of r.shifts) {
+        const [sh,sm] = String(s.istStart||'0:0').split(':').map(Number);
+        const [eh,em] = String(s.istEnd  ||'0:0').split(':').map(Number);
+        let startMin = sh*60+sm, endMin = eh*60+em;
+        if (endMin <= startMin) endMin += 1440; // overnight
+        next[s.code] = {
+          code: s.code, label: s.label||'', ist: s.istLabel||'',
+          startMin, endMin, color: s.color||'#888'
+        };
+      }
+      SHIFTS = next;
+    }
+    if (Array.isArray(r.agents) && r.agents.length) {
+      ROSTER = r.agents.map(a => ({name:a.name, shift:a.shift, weekoff: offs(a.weekoff||'')}));
+      TEAM_OF = {}; for (const a of r.agents) TEAM_OF[a.name] = a.team || 'CS English';
+      ROSTER_BY_NORM = {}; ROSTER.forEach(x => ROSTER_BY_NORM[norm(x.name)] = x.name);
+    }
+    if (r.roles && typeof r.roles === 'object') {
+      ROLE_GROUPS = r.roles;
+      ROLE_OF = {};
+      ROSTER.forEach(x => ROLE_OF[x.name] = 'Agent');
+      Object.entries(ROLE_GROUPS).forEach(([role, names]) => (names||[]).forEach(n => ROLE_OF[n] = role));
+    }
+    if (r.aliases && typeof r.aliases === 'object') {
+      for (const [k,v] of Object.entries(r.aliases)) ALIASES[norm(k)] = v;
+    }
+    if (Array.isArray(r.exceptions)) BUILTIN_OVERRIDES = r.exceptions;
+    renderLegendRail();
+    buildExShiftOptions();
+    if (r.updated) {
+      const sub = document.querySelector('header .sub');
+      if (sub) sub.textContent = sub.textContent + ' · roster ' + r.updated;
+    }
+    return true;
+  } catch(e) {
+    console.warn('roster.json not loaded; using built-in seed roster:', e.message);
+    renderLegendRail();
+    buildExShiftOptions();
+    return false;
+  }
+}
+
+// ---- wiring ----
+document.querySelectorAll('.vtab').forEach(t=>t.onclick=()=>setView(t.dataset.v));
+$('drop').onclick=()=>$('file').click();
+$('file').onchange=e=>handleFiles([...e.target.files]);
+['dragover','dragenter'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('over');}));
+['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('over');}));
+$('drop').addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));
+$('violOnly').onchange=render; $('showProg').onchange=render; $('search').oninput=render;
+$('modeRoster').onclick=()=>{ MATCH_MODE='roster'; $('modeRoster').classList.add('on'); $('modeAuto').classList.remove('on'); if(allSwipes.length) recompute(); };
+$('modeAuto').onclick=()=>{ MATCH_MODE='auto'; $('modeAuto').classList.add('on'); $('modeRoster').classList.remove('on'); if(allSwipes.length) recompute(); };
+$('btnReset').onclick=()=>location.reload();
+// Seed TEAM_OF from the seed ROSTER so the dashboard still works if roster.json is unreachable
+ROSTER.forEach(r => { if (!TEAM_OF[r.name]) TEAM_OF[r.name] = 'CS English'; });
+// Also seed ROLE_OF (the original code did this at top-level; it still runs via the let-rewrite)
+ROSTER.forEach(r => { if (!ROLE_OF[r.name]) ROLE_OF[r.name] = 'Agent'; });
+Object.entries(ROLE_GROUPS).forEach(([role,names]) => (names||[]).forEach(n => ROLE_OF[n] = role));
+loadRoster().then(() => { fillExForm(); if (allSwipes.length) recompute(); });
+</script>
+</body>
+</html>
